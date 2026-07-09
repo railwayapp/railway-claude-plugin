@@ -2,7 +2,7 @@
   "name": "railway",
   "displayName": "Railway",
   "description": "Railway agent skills and hosted MCP server for deploying, configuring, monitoring, and troubleshooting apps and infrastructure on Railway from Cursor. Manage services, environments, deployments, databases, object storage, networking, and observability.",
-  "version": "1.3.5",
+  "version": "1.3.6",
   "author": {
     "name": "Railway",
     "email": "contact@railway.com"

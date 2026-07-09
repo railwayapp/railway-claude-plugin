@@ -1,6 +1,6 @@
 {
   "name": "railway",
-  "version": "1.3.5",
+  "version": "1.3.6",
   "description": "Railway agent skills and hosted MCP server for deploying, configuring, monitoring, and troubleshooting apps and infrastructure on Railway from Grok. Manage services, environments, deployments, databases, object storage, networking, and observability.",
   "author": {
     "name": "Railway",

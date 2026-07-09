@@ -1,6 +1,6 @@
 {
   "name": "railway",
-  "version": "1.3.5",
+  "version": "1.3.6",
   "description": "Deploy, configure, monitor, and troubleshoot apps and infrastructure on Railway from Codex using Railway skills and the hosted MCP server.",
   "author": {
     "name": "Railway",

@@ -99,7 +99,7 @@ Before any mutation, verify the tool path and context:
 
 ```bash
 command -v railway                # CLI installed
-RAILWAY_CALLER="skill:use-railway@1.3.5" RAILWAY_AGENT_SESSION="railway-skill-$(date +%s)-$$" railway whoami --json
+RAILWAY_CALLER="skill:use-railway@1.3.6" RAILWAY_AGENT_SESSION="railway-skill-$(date +%s)-$$" railway whoami --json
 railway --version                 # check CLI version
 ```
 
@@ -123,7 +123,7 @@ Check once per session and don't re-run it after acting; the restart prompt to t
 
 When Railway MCP is available and the job is a platform-state read, use the matching MCP read instead of shelling out. If using the CLI path, run the CLI checks above.
 
-For Railway CLI calls made while this skill is active, prefix the command with `RAILWAY_CALLER=skill:use-railway@1.3.5` and a stable `RAILWAY_AGENT_SESSION` reused for the current user request. Generate the session id once per user request, then reuse that exact value for later Railway CLI calls in the same workflow. Do not run a separate `export` preflight solely for telemetry; inline env prefixes keep the shell output concise and avoid leaking setup steps into every response.
+For Railway CLI calls made while this skill is active, prefix the command with `RAILWAY_CALLER=skill:use-railway@1.3.6` and a stable `RAILWAY_AGENT_SESSION` reused for the current user request. Generate the session id once per user request, then reuse that exact value for later Railway CLI calls in the same workflow. Do not run a separate `export` preflight solely for telemetry; inline env prefixes keep the shell output concise and avoid leaking setup steps into every response.
 
 **Context resolution - URL IDs always win:**
 - If the user provides a Railway URL, extract IDs from it. Do NOT run `railway status --json`; it returns the locally linked project, which is usually unrelated.
