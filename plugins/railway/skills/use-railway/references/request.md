@@ -85,13 +85,30 @@ Community threads are anecdotal. Always pair with official docs when the answer 
 
 ## GraphQL helper
 
-All GraphQL operations use the API helper script, which handles authentication automatically:
+Use GraphQL only when neither the Railway CLI nor MCP exposes the required
+operation. All GraphQL operations use the API helper script:
 
 ```bash
 scripts/railway-api.sh '<query>' '<variables-json>'
 ```
 
-The script reads the API token from `~/.railway/config.json` and sends requests to `https://backboard.railway.com/graphql/v2`.
+The helper sends requests to `https://backboard.railway.com/graphql/v2` and
+uses these credential paths in order:
+
+1. `RAILWAY_API_TOKEN` for an account or workspace token, sent as
+   `Authorization: Bearer`.
+2. `RAILWAY_TOKEN` for a project token, sent as `Project-Access-Token`.
+3. The current browser-login access token in
+   `~/.railway/config.json:user.accessToken`, sent as Bearer when it is not
+   expired.
+4. The legacy `~/.railway/config.json:user.token`, sent as Bearer.
+
+Set only one explicit token variable. The helper never reads or refreshes
+`user.refreshToken`; Railway CLI owns the OAuth refresh lifecycle. If the
+stored access token is expired, run a Railway CLI command or `railway login`
+before retrying. An access token with a missing or invalid expiry also fails
+with that guidance. Credentials are not printed or passed as curl header
+arguments.
 
 For the full API schema, see: https://docs.railway.com/api/llms-docs.md
 

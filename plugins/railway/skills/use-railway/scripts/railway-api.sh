@@ -5,7 +5,7 @@
 set -e
 
 SKILL_ID="use-railway"
-SKILL_VERSION="${RAILWAY_SKILL_VERSION:-1.2.3}"
+SKILL_VERSION="${RAILWAY_SKILL_VERSION:-1.3.6}"
 
 export RAILWAY_CALLER="${RAILWAY_CALLER:-skill:${SKILL_ID}@${SKILL_VERSION}}"
 export RAILWAY_AGENT_SESSION="${RAILWAY_AGENT_SESSION:-railway-skill-$(date +%s)-$$}"
@@ -17,16 +17,52 @@ fi
 
 CONFIG_FILE="$HOME/.railway/config.json"
 
-if [[ ! -f "$CONFIG_FILE" ]]; then
-  echo '{"error": "Railway config not found. Run: railway login"}'
+if [[ -n "${RAILWAY_API_TOKEN:-}" && -n "${RAILWAY_TOKEN:-}" ]]; then
+  echo '{"error": "RAILWAY_API_TOKEN and RAILWAY_TOKEN cannot both be set"}'
   exit 1
 fi
 
-TOKEN=$(jq -r '.user.token' "$CONFIG_FILE")
+TOKEN=""
+AUTH_HEADER=""
 
-if [[ -z "$TOKEN" || "$TOKEN" == "null" ]]; then
-  echo '{"error": "No Railway token found. Run: railway login"}'
-  exit 1
+if [[ -n "${RAILWAY_API_TOKEN:-}" ]]; then
+  TOKEN="$RAILWAY_API_TOKEN"
+  AUTH_HEADER="Authorization: Bearer $TOKEN"
+elif [[ -n "${RAILWAY_TOKEN:-}" ]]; then
+  TOKEN="$RAILWAY_TOKEN"
+  AUTH_HEADER="Project-Access-Token: $TOKEN"
+else
+  if [[ ! -f "$CONFIG_FILE" ]]; then
+    echo '{"error": "Railway config not found. Run: railway login or set RAILWAY_API_TOKEN or RAILWAY_TOKEN"}'
+    exit 1
+  fi
+
+  ACCESS_TOKEN=$(jq -r '.user.accessToken // empty' "$CONFIG_FILE")
+
+  if [[ -n "$ACCESS_TOKEN" ]]; then
+    ACCESS_TOKEN_EXPIRES_AT=$(jq -r '.user.tokenExpiresAt // empty' "$CONFIG_FILE")
+
+    if [[ ! "$ACCESS_TOKEN_EXPIRES_AT" =~ ^[0-9]+$ ]]; then
+      echo '{"error": "Railway access token has no valid expiry. Run a Railway CLI command or railway login to refresh it, then retry."}'
+      exit 1
+    fi
+
+    if (( ACCESS_TOKEN_EXPIRES_AT <= $(date +%s) + 60 )); then
+      echo '{"error": "Railway access token is expired. Run a Railway CLI command or railway login to refresh it, then retry."}'
+      exit 1
+    fi
+
+    TOKEN="$ACCESS_TOKEN"
+  else
+    TOKEN=$(jq -r '.user.token // empty' "$CONFIG_FILE")
+  fi
+
+  if [[ -z "$TOKEN" ]]; then
+    echo '{"error": "No Railway credential found. Run: railway login or set RAILWAY_API_TOKEN or RAILWAY_TOKEN"}'
+    exit 1
+  fi
+
+  AUTH_HEADER="Authorization: Bearer $TOKEN"
 fi
 
 if [[ -z "$1" ]]; then
@@ -41,8 +77,20 @@ else
   PAYLOAD=$(jq -n --arg q "$1" '{query: $q}')
 fi
 
+ORIGINAL_UMASK=$(umask)
+umask 077
+AUTH_HEADER_FILE=$(mktemp "${TMPDIR:-/tmp}/railway-api-header.XXXXXX")
+umask "$ORIGINAL_UMASK"
+
+cleanup() {
+  rm -f "$AUTH_HEADER_FILE"
+}
+
+trap cleanup EXIT
+printf '%s\n' "$AUTH_HEADER" > "$AUTH_HEADER_FILE"
+
 HEADERS=(
-  -H "Authorization: Bearer $TOKEN"
+  -H "@$AUTH_HEADER_FILE"
   -H "Content-Type: application/json"
   -H "X-Railway-Skill-Id: $SKILL_ID"
   -H "X-Railway-Skill-Version: $SKILL_VERSION"
