@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Shared Railway infrastructure helpers for database analysis scripts."""
 
+import base64
 import json
 import os
 import subprocess
@@ -179,11 +180,19 @@ def run_ssh_query(service: str, command: str, timeout: int = 60,
 def run_psql_query(service: str, query: str, timeout: int = 60) -> Tuple[int, str]:
     """Run a psql query via railway ssh and return (returncode, output).
 
-    Normalizes query whitespace and suppresses psql warnings (e.g. collation
-    version mismatch) that would otherwise pollute stdout.
+    Normalizes query whitespace. SQL errors remain visible to callers and stop
+    the piped psql session immediately.
     """
     query = " ".join(query.split())
-    command = f'''PAGER='' psql $DATABASE_URL -P pager=off -t -A -c "{query}" 2>/dev/null'''
+    # Encode the SQL before crossing the remote shell boundary. Embedding the
+    # query directly inside `-c "..."` lets quotes, dollar expansions, and
+    # command substitutions in otherwise-valid SQL be interpreted by the
+    # remote shell before psql sees them.
+    encoded = base64.b64encode(query.encode("utf-8")).decode("ascii")
+    command = (
+        f"printf '%s' '{encoded}' | base64 -d | "
+        "PAGER='' psql $DATABASE_URL -v ON_ERROR_STOP=1 -P pager=off -t -A"
+    )
     code, stdout, stderr = run_ssh_query(service, command, timeout)
     if code != 0:
         return code, stderr or stdout
