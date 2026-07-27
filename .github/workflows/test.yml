@@ -1,0 +1,15 @@
+name: Test
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  railway-api-helper:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Test GraphQL helper authentication
+        run: python3 tests/railway_api_test.py

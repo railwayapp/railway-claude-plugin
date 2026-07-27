@@ -78,9 +78,12 @@ Use GraphQL for operations the CLI doesn't expose.
 - API helper: `plugins/railway/skills/use-railway/scripts/railway-api.sh`
 - The API helper attaches `X-Railway-Skill-Id`, `X-Railway-Skill-Version`, and `X-Railway-Agent-Session` headers.
 
-### API token
+### GraphQL helper authentication
 
-Token location: `~/.railway/config.json` under `user.token`.
+For GraphQL fallbacks, prefer an explicit `RAILWAY_API_TOKEN` for account or
+workspace scope, or `RAILWAY_TOKEN` for project scope. The helper otherwise
+uses an unexpired browser-login `user.accessToken` and retains legacy
+`user.token` compatibility. It does not read or refresh `user.refreshToken`.
 
 Example:
 
@@ -98,6 +101,7 @@ API docs: https://docs.railway.com/api/llms-docs.md
 When editing this plugin:
 
 - Keep `SKILL.md` focused on routing, preflight, composition, and common operations.
+- Run `python3 tests/railway_api_test.py` when changing the GraphQL helper.
 - Keep references organized by information type (setup, deploy, configure, iac, operate, api).
 - Keep references action-oriented with reasoning. Explain why, not only what.
 - Keep CLI behavior claims aligned with Railway docs and CLI source.
