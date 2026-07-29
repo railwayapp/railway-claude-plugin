@@ -63,17 +63,23 @@ EOF
 
 ## Runtime SDK
 
-In deployed services, use the Railway SDK flags module:
+In deployed services, use the Railway SDK flags module. Recommended setup: create a project token (project settings → Tokens) and set it as `RAILWAY_TOKEN` on the service — init is then zero-config and the scope is inferred from the token:
 
 ```typescript
 import { flags } from "railway";
 
-await flags.init({ scope: { projectId: process.env.RAILWAY_PROJECT_ID! } });
+await flags.init();
 
 const enabled = flags.getBoolean("checkout-v2", {
   targetingKey: userId,
   attributes: { plan: "enterprise" },
 });
+```
+
+Token resolution: explicit `token` option → `RAILWAY_TOKEN` (project token, preferred) → `RAILWAY_API_TOKEN` (bearer account/workspace token, last resort). With a bearer token, pass the scope explicitly:
+
+```typescript
+await flags.init({ scope: { projectId: process.env.RAILWAY_PROJECT_ID! } });
 ```
 
 Poll interval defaults are suitable for most apps; flags refresh when registry versions change.
