@@ -7,7 +7,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${GROK_PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/hooks/auto-approve-api.sh"
+            "command": "bash \"${GROK_PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/hooks/auto-approve-api.sh\""
           }
         ]
       }
