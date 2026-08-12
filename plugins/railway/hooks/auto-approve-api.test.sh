@@ -1,7 +1,7 @@
 #!/bin/bash
 # The payloads below are shell source held as data, so the metacharacters and
 # backslashes in them are deliberately literal and must not be rewritten.
-# shellcheck disable=SC1003,SC2016
+# shellcheck disable=SC1003,SC2016,SC2088
 #
 # Regression tests for auto-approve-api.sh. Run: bash auto-approve-api.test.sh
 #
@@ -71,11 +71,39 @@ check prompt 'subshell'                      '(railway status; touch pwned)'
 check prompt 'brace group'                   '{ railway status; touch pwned; }'
 check prompt 'unterminated quote'            'railway " ; touch pwned'
 check prompt 'trailing lone backslash'       'railway \'
+check prompt 'ANSI-C quoting is not a quoted span' \
+  "railway \$'\\'' ; touch pwned ; : '\\'"
+check prompt 'localised string is not a quoted span' \
+  'railway $" ; touch pwned ; echo "'
+
+echo
+echo "The word bash runs is not the skeleton — must prompt:"
+check prompt 'quoted span inside the command name'  "r'x'ailway status"
+check prompt 'empty quoted span inside the name'    "rail''way status"
+check prompt 'quoting reaches a path through the name' \
+  "'$decoy_dir/'railway status" /
+check prompt 'escape inside the command name'       'rail\way status'
+check prompt 'quoted telemetry prefix name'         "RAILWAY'_'CALLER=x railway status"
+check prompt 'glob in the command name'             'railwa? status'
+check prompt 'variable in the command name'         'railwa$y status'
+check prompt 'tilde reaches a home-relative path'   '~/railway status'
+
+echo
+echo "CLI subcommands that run a command are not covered by the CLI's name:"
+check prompt 'run executes a local command'         'railway run -- sh -c id'
+check prompt 'run with flags before the command'    'railway run --service api -- sh -c id'
+check prompt 'quoted subcommand is still the subcommand' "railway 'run' -- sh -c id"
+check prompt 'ssh executes on a service'            'railway ssh --service api sh -c id'
+check prompt 'sandbox exec executes in a sandbox'   'railway sandbox exec my-box -- sh -c id'
+check prompt 'connect opens a local database shell' 'railway connect Postgres'
 
 echo
 echo "Documented call forms — must auto-approve:"
 check allow 'bare CLI'                       'railway status'
 check allow 'CLI with flags'                  'railway status --json'
+check allow 'logs by service'                 'railway logs --service api --environment production'
+check allow 'deploy'                          'railway up --detach'
+check allow 'quoted argument value'           "railway variables --set 'FOO=a b'"
 check allow 'telemetry env prefix'            'RAILWAY_CALLER=skill RAILWAY_SKILL_VERSION=1 railway status'
 check allow 'escaped space in argument'       'railway variables --set FOO=a\ b'
 check allow 'quoted query and variables' \
@@ -94,7 +122,7 @@ check allow 'multi-line quoted query' "scripts/railway-api.sh \\
 echo
 echo "Which railway-api.sh — only the one shipped beside this hook:"
 check allow  'helper by absolute path'        "$scripts_dir/railway-api.sh 'q'" /
-check allow  'helper by bare name from its own directory' \
+check prompt 'helper by bare name resolves in PATH, not the working directory' \
   "railway-api.sh 'q'" "$scripts_dir"
 check allow  'helper via ./ from its own directory' \
   "./railway-api.sh 'q'" "$scripts_dir"
