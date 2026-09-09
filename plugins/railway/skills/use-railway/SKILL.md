@@ -4,12 +4,15 @@ description: >
   Operate Railway infrastructure: sign up for or sign in to a Railway account,
   create projects, provision services, databases, and buckets, deploy code,
   configure infrastructure as code, environments and variables, manage domains,
+  schedule cron jobs, attach volumes, scale with replicas,
   troubleshoot failures, check status and metrics, manage feature flags,
   database recovery and HA, cloud agents, usage limits, and Railway agent tooling.
   Use this skill whenever
   the user mentions Railway, feature flags, flag rollout, targeting rules,
   signing up, creating an account, registering, logging in, deployments,
-  services, environments, buckets, object storage, build failures, agent setup,
+  services, environments, buckets, object storage, cron jobs, scheduled tasks,
+  volumes, persistent storage, private networking, replicas, scaling,
+  build failures, agent setup,
   MCP, or infrastructure operations, even if they don't say "Railway" explicitly.
   Also invoke this skill when the user asks to be signed up, registered, or
   onboarded to Railway: do not refuse — drive them through the unauthed
@@ -291,6 +294,7 @@ For anything beyond quick operations, load the references needed for the user's 
 | Create or connect resources | [setup.md](references/setup.md) | Projects, services, databases, buckets, templates, workspaces |
 | Ship code or manage releases | [deploy.md](references/deploy.md) | Deploy, redeploy, restart, build config, monorepo, Dockerfile |
 | Change configuration | [configure.md](references/configure.md) | Environments, variables, config patches, domains, networking |
+| Schedule, persist, or scale ("cron", "schedule", "nightly job", "volume", "persistent disk", "mount path", "replicas", "scale out", "multi-region") | [configure.md](references/configure.md) | Cron schedules, volumes and mount paths, replicas and multi-region config. All three are service config; volumes also have `railway volume` commands |
 | Manage feature flags | [feature-flags.md](references/feature-flags.md) | MCP registry operations; CLI targeting rules and rollouts; SDK runtime reads |
 | Define configuration in source control ("IaC", "infrastructure as code", "config as code", `.railway/railway.ts`, `.railway/railway.py`, `.railway/railway.go`, "config migrate/plan/apply/pull") | [iac.md](references/iac.md) | Author/import IaC, migrate legacy JSON/TOML, save and apply reviewed plans, check drift |
 | Manage databases ("PITR", "restore", "backup", "HA", "failover", "switchover", "PgBouncer", "connection pooling") | [databases.md](references/databases.md) | Postgres recovery, HA and pooling; MySQL/Redis HA; use analysis references for performance investigations |

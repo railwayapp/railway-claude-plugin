@@ -33,7 +33,7 @@ References:
 |---|---|---|
 | Create or connect resources | `references/setup.md` | Projects, services, databases, buckets, templates, workspaces |
 | Ship code or manage releases | `references/deploy.md` | Deploy, redeploy, restart, build config, monorepo, Dockerfile |
-| Change configuration | `references/configure.md` | Environments, variables, config patches, domains, networking |
+| Change configuration | `references/configure.md` | Environments, variables, config patches, domains, networking, cron schedules, volumes, replicas |
 | Manage feature flags | `references/feature-flags.md` | MCP registry operations; CLI targeting rules and rollouts; SDK runtime reads |
 | Define configuration in source control | `references/iac.md` | TypeScript/Python/Go IaC, legacy migration, imports, saved plans, apply and drift checks |
 | Manage database features | `references/databases.md` | Postgres PITR, backups, HA and PgBouncer; MySQL/Redis HA |
