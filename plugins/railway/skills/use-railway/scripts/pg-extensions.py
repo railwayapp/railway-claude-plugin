@@ -37,6 +37,20 @@ class Extension:
     comment: str
 
 
+def quote_sql_identifier(value: str) -> str:
+    """Quote a PostgreSQL identifier without allowing SQL injection."""
+    if "\x00" in value:
+        raise ValueError("PostgreSQL identifiers cannot contain NUL bytes")
+    return '"' + value.replace('"', '""') + '"'
+
+
+def quote_sql_literal(value: str) -> str:
+    """Quote a PostgreSQL string literal without allowing SQL injection."""
+    if "\x00" in value:
+        raise ValueError("PostgreSQL string literals cannot contain NUL bytes")
+    return "'" + value.replace("'", "''") + "'"
+
+
 def list_extensions(service: str, json_output: bool = False) -> List[Extension]:
     """List all available and installed extensions."""
     # Query available extensions
@@ -118,10 +132,11 @@ def list_extensions(service: str, json_output: bool = False) -> List[Extension]:
 
 def get_extension_dependencies(service: str, extension: str) -> List[str]:
     """Get dependencies for an extension."""
+    extension_literal = quote_sql_literal(extension)
     query = f"""
         SELECT DISTINCT unnest(pev.requires) as dependency
         FROM pg_available_extension_versions pev
-        WHERE pev.name = '{extension}' AND pev.requires IS NOT NULL
+        WHERE pev.name = {extension_literal} AND pev.requires IS NOT NULL
         ORDER BY dependency
     """
     code, output = run_psql_query(service, query)
@@ -137,6 +152,7 @@ def get_extension_dependencies(service: str, extension: str) -> List[str]:
 
 def get_extension_dependents(service: str, extension: str) -> List[str]:
     """Get extensions that depend on this extension."""
+    extension_literal = quote_sql_literal(extension)
     query = f"""
         SELECT e.extname AS dependent_extension
         FROM pg_depend d
@@ -144,7 +160,7 @@ def get_extension_dependents(service: str, extension: str) -> List[str]:
         JOIN pg_extension ref_e ON d.refobjid = ref_e.oid
         WHERE d.classid = 'pg_extension'::regclass
             AND d.refclassid = 'pg_extension'::regclass
-            AND ref_e.extname = '{extension}'
+            AND ref_e.extname = {extension_literal}
         ORDER BY dependent_extension
     """
     code, output = run_psql_query(service, query)
@@ -160,7 +176,10 @@ def get_extension_dependents(service: str, extension: str) -> List[str]:
 
 def is_extension_installed(service: str, extension: str) -> Tuple[bool, Optional[str]]:
     """Check if extension is installed, return (installed, version)."""
-    query = f"SELECT extversion FROM pg_extension WHERE extname = '{extension}'"
+    query = (
+        "SELECT extversion FROM pg_extension WHERE extname = "
+        f"{quote_sql_literal(extension)}"
+    )
     code, output = run_psql_query(service, query)
     if code == 0 and output.strip():
         return True, output.strip()
@@ -169,7 +188,10 @@ def is_extension_installed(service: str, extension: str) -> Tuple[bool, Optional
 
 def is_extension_available(service: str, extension: str) -> bool:
     """Check if extension is available in the image."""
-    query = f"SELECT 1 FROM pg_available_extensions WHERE name = '{extension}'"
+    query = (
+        "SELECT 1 FROM pg_available_extensions WHERE name = "
+        f"{quote_sql_literal(extension)}"
+    )
     code, output = run_psql_query(service, query)
     return code == 0 and output.strip() == "1"
 
@@ -198,9 +220,9 @@ def install_extension(service: str, extension: str, version: Optional[str] = Non
         return False
 
     # Build install query
-    query = f'CREATE EXTENSION IF NOT EXISTS "{extension}"'
+    query = f"CREATE EXTENSION IF NOT EXISTS {quote_sql_identifier(extension)}"
     if version:
-        query += f" VERSION '{version}'"
+        query += f" VERSION {quote_sql_literal(version)}"
     query += " CASCADE"  # Auto-install dependencies
 
     info(f"Installing extension '{extension}'...")
@@ -240,7 +262,7 @@ def uninstall_extension(service: str, extension: str) -> bool:
         return False
 
     # Uninstall
-    query = f'DROP EXTENSION IF EXISTS "{extension}"'
+    query = f"DROP EXTENSION IF EXISTS {quote_sql_identifier(extension)}"
     info(f"Uninstalling extension '{extension}'...")
     code, output = run_psql_query(service, query)
     if code != 0:
@@ -264,7 +286,10 @@ def extension_info(service: str, extension: str, json_output: bool = False):
         error(f"Extension '{extension}' is not available in this database image")
 
     # Get info
-    query = f"SELECT name, default_version, comment FROM pg_available_extensions WHERE name = '{extension}'"
+    query = (
+        "SELECT name, default_version, comment FROM pg_available_extensions "
+        f"WHERE name = {quote_sql_literal(extension)}"
+    )
     code, output = run_psql_query(service, query)
     if code != 0:
         error(f"Failed to get extension info: {output}")
