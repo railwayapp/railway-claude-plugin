@@ -242,6 +242,61 @@ railway environment config --json
 railway service list --json
 ```
 
+## Cron schedules
+
+A cron schedule turns a service into a scheduled job: Railway runs the start command on the schedule and expects the process to exit when the task is done.
+
+```bash
+railway environment edit --service-config <service> deploy.cronSchedule "0 * * * *"
+```
+
+Rules the agent must apply:
+
+- Five-field crontab, evaluated in UTC. Shortest interval is 5 minutes.
+- The process must exit and close its connections. If the previous run is still `Active` when the next is due, Railway skips the new run.
+- A cron service can share a repo with a web service. Add a second service from the same source and give it its own start command and schedule. Do not set a schedule on the web service itself.
+- For a task that must run more often than every 5 minutes or that never exits, use a long-running worker instead. See [Cron Jobs, Background Workers, and Queues](https://docs.railway.com/guides/cron-workers-queues).
+
+## Volumes
+
+A volume is persistent storage mounted at a path inside one service. Data survives redeploys; the container filesystem does not.
+
+```bash
+railway volume list
+railway volume add --mount-path /data
+railway volume update --volume <name-or-id> --mount-path /new/path
+railway volume attach --volume <name-or-id> --service <service>
+railway volume detach --volume <name-or-id>
+railway volume delete --volume <name-or-id>
+```
+
+Volume commands act on the linked service. Pass `--service <service>` to target another one.
+
+Rules the agent must apply:
+
+- One volume per service. Replicas cannot be used on a service with a volume.
+- The mount path is available in the service as `RAILWAY_VOLUME_MOUNT_PATH`. Write there, not to a relative path.
+- Default size follows the plan (Free and Trial 0.5 GB, Hobby 5 GB, Pro 50 GB). Paid plans can grow a volume live; shrinking is not supported.
+- Images that run as a non-root user can hit permission errors on the mount. Set `RAILWAY_RUN_UID=0` on the service if that happens.
+- For object storage that many services share, use a bucket instead. See [setup.md](setup.md).
+
+## Replicas
+
+Replicas scale a service horizontally. Each replica gets the full resource limits of the plan, and public traffic is distributed across replicas at random within a region.
+
+```bash
+railway environment edit --service-config <service> deploy.numReplicas 3
+```
+
+For replicas in more than one region, patch `deploy.multiRegionConfig` with the JSON shape in [Config schema](#config-schema-typed-paths). Changing the replica count is a staged change that Railway applies without a full redeploy.
+
+Rules the agent must apply:
+
+- `numReplicas` is an integer. Check current config first with `railway environment config --json`.
+- Replicas do not work with volumes. Move state to a database or bucket before scaling out a stateful service.
+- No sticky sessions. Keep session state out of process memory.
+- Each replica sees `RAILWAY_REPLICA_ID` and, with multi-region, `RAILWAY_REPLICA_REGION`.
+
 ## Domains
 
 Use the `railway domain` command for domain lifecycle work. Avoid raw `environment edit` JSON patches for normal domain management.
@@ -370,5 +425,5 @@ While active, browser visitors must pass a check. Non-browser API clients and we
 
 ## Validated against
 
-- Docs: [environment.md](https://docs.railway.com/cli/environment), [variable.md](https://docs.railway.com/cli/variable), [domain.md](https://docs.railway.com/cli/domain), [tcp-proxy.md](https://docs.railway.com/cli/tcp-proxy), [private-network.md](https://docs.railway.com/cli/private-network), [outbound-network.md](https://docs.railway.com/cli/outbound-network), [cdn.md](https://docs.railway.com/cli/cdn), [waf.md](https://docs.railway.com/cli/waf)
-- CLI source: [environment/mod.rs](https://github.com/railwayapp/cli/blob/v5.23.3/src/commands/environment/mod.rs), [environment/edit.rs](https://github.com/railwayapp/cli/blob/v5.23.3/src/commands/environment/edit.rs), [variable.rs](https://github.com/railwayapp/cli/blob/v5.49.1/src/commands/variable.rs), [domain.rs](https://github.com/railwayapp/cli/blob/v5.23.3/src/commands/domain.rs), [tcp_proxy.rs](https://github.com/railwayapp/cli/blob/v5.23.3/src/commands/tcp_proxy.rs), [private_network.rs](https://github.com/railwayapp/cli/blob/v5.23.3/src/commands/private_network.rs), [outbound_networking.rs](https://github.com/railwayapp/cli/blob/v5.23.3/src/commands/outbound_networking.rs), [cdn.rs](https://github.com/railwayapp/cli/blob/v5.23.3/src/commands/cdn.rs), [waf.rs](https://github.com/railwayapp/cli/blob/v5.23.3/src/commands/waf.rs)
+- Docs: [cron-jobs.md](https://docs.railway.com/cron-jobs), [volumes.md](https://docs.railway.com/volumes), [volumes/reference.md](https://docs.railway.com/volumes/reference), [scaling.md](https://docs.railway.com/deployments/scaling), [volume.md](https://docs.railway.com/cli/volume), [environment.md](https://docs.railway.com/cli/environment), [variable.md](https://docs.railway.com/cli/variable), [domain.md](https://docs.railway.com/cli/domain), [tcp-proxy.md](https://docs.railway.com/cli/tcp-proxy), [private-network.md](https://docs.railway.com/cli/private-network), [outbound-network.md](https://docs.railway.com/cli/outbound-network), [cdn.md](https://docs.railway.com/cli/cdn), [waf.md](https://docs.railway.com/cli/waf)
+- CLI source: [volume.rs](https://github.com/railwayapp/cli/blob/v5.49.1/src/commands/volume.rs), [environment/mod.rs](https://github.com/railwayapp/cli/blob/v5.23.3/src/commands/environment/mod.rs), [environment/edit.rs](https://github.com/railwayapp/cli/blob/v5.23.3/src/commands/environment/edit.rs), [variable.rs](https://github.com/railwayapp/cli/blob/v5.49.1/src/commands/variable.rs), [domain.rs](https://github.com/railwayapp/cli/blob/v5.23.3/src/commands/domain.rs), [tcp_proxy.rs](https://github.com/railwayapp/cli/blob/v5.23.3/src/commands/tcp_proxy.rs), [private_network.rs](https://github.com/railwayapp/cli/blob/v5.23.3/src/commands/private_network.rs), [outbound_networking.rs](https://github.com/railwayapp/cli/blob/v5.23.3/src/commands/outbound_networking.rs), [cdn.rs](https://github.com/railwayapp/cli/blob/v5.23.3/src/commands/cdn.rs), [waf.rs](https://github.com/railwayapp/cli/blob/v5.23.3/src/commands/waf.rs)
